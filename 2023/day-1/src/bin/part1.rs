@@ -38,7 +38,7 @@ fn main() -> std::io::Result<()> {
         total += parsed_num;
     }
 
-    println!(total);
+    println!("{}", total);
 
     Ok(())
 }
