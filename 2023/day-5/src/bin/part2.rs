@@ -20,7 +20,7 @@ impl MapElement {
 
 #[derive(Clone, Copy, Debug)]
 
-struct Interval {
+struct Range {
     start: i64,
     range_len: i64,
 }
@@ -55,21 +55,21 @@ impl Map {
         return n;
     }
 
-    fn get_range(&self, source: Interval) -> Vec<(Interval, Interval)> {
-        let mut partitions: Vec<Interval> = Vec::new();
+    fn get_range(&self, source: Range) -> Vec<(Range, Range)> {
+        // We need to split the source range into any partitions that are
+        // contiguous to map elements. For example, if we have a map element
+        // that maps 0..10 to 20..30, and we have a source range of 5..25,
+        // we need to split the source range into 5..10, 10..20, and 20..25.
+        let mut partitions: Vec<Range> = Vec::new();
 
         let mut sorted_map_elements = self.elements.clone();
         sorted_map_elements.sort_by_key(|elem| elem.source_start);
 
         let mut current_start = source.start;
 
-        if source.range_len < 1 {
-            return Vec::new();
-        }
-
         if let Some(first_element) = sorted_map_elements.first() {
             if first_element.source_start > source.start {
-                partitions.push(Interval {
+                partitions.push(Range {
                     start: source.start,
                     range_len: if source.range_len > first_element.source_start - source.start {
                         first_element.source_start - source.start
@@ -94,7 +94,7 @@ impl Map {
                 source.start + source.range_len - 1,
             );
 
-            partitions.push(Interval {
+            partitions.push(Range {
                 start: current_start,
                 range_len: partition_end - current_start + 1,
             });
@@ -107,20 +107,20 @@ impl Map {
         }
 
         if current_start < source.start + source.range_len {
-            partitions.push(Interval {
+            partitions.push(Range {
                 start: current_start,
                 range_len: source.start + source.range_len - current_start,
             });
         }
 
-        let result: Vec<(Interval, Interval)> = partitions
+        let result: Vec<(Range, Range)> = partitions
             .into_iter()
-            .map(|interval| {
+            .map(|range| {
                 (
-                    interval.clone(),
-                    Interval {
-                        start: self.get(interval.start),
-                        range_len: interval.range_len,
+                    range,
+                    Range {
+                        start: self.get(range.start),
+                        range_len: range.range_len,
                     },
                 )
             })
@@ -158,32 +158,32 @@ impl Almanac {
         return Almanac { seed_ranges, maps };
     }
 
-    fn get_location_ranges(&self, seed_interval: Interval) -> Vec<Interval> {
-        let mut current_intervals = vec![seed_interval];
+    fn get_location_ranges(&self, seed_range: Range) -> Vec<Range> {
+        let mut current_ranges = vec![seed_range];
         for map in &self.maps {
-            let mut next_intervals = Vec::new();
-            for interval in current_intervals {
-                let map_partitions = map.get_range(interval);
-                for (_source_interval, destination_interval) in map_partitions {
-                    next_intervals.push(destination_interval);
+            let mut next_ranges = Vec::new();
+            for range in current_ranges {
+                let map_partitions = map.get_range(range);
+                for (_source_range, destination_range) in map_partitions {
+                    next_ranges.push(destination_range);
                 }
             }
-            current_intervals = next_intervals;
+            current_ranges = next_ranges;
         }
 
-        return current_intervals;
+        return current_ranges;
     }
 
     fn get_minimum_location(&self) -> i64 {
         let mut lowest_location = INFINITY as i64;
         for (start, range_len) in &self.seed_ranges {
-            let location = self.get_location_ranges(Interval {
+            let location = self.get_location_ranges(Range {
                 start: *start,
                 range_len: *range_len,
             });
             let min_location = location
                 .iter()
-                .min_by_key(|interval| interval.start)
+                .min_by_key(|range| range.start)
                 .unwrap()
                 .start;
             if min_location < lowest_location {
