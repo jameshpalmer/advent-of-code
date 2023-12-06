@@ -1,4 +1,3 @@
-use core::f64::INFINITY;
 use std::fs;
 
 #[derive(Clone, Debug)]
@@ -136,17 +135,14 @@ struct Almanac {
 }
 
 impl Almanac {
-    fn from_str(text: String) -> Almanac {
+    fn from_str(text: &str) -> Almanac {
         let mut sections = text.split("\n\n");
 
         let seed_ranges = sections
             .next()
             .expect("Unable to parse seeds")
             .split_whitespace()
-            .filter(|seed_str| seed_str.chars().all(|c: char| c.is_numeric()))
-            .map(|seed_str| {
-                return seed_str.parse().expect(seed_str);
-            })
+            .filter_map(|seed_str| seed_str.parse().ok())
             .collect::<Vec<i64>>()
             .chunks(2)
             .map(|chunk| (chunk[0], chunk[1]))
@@ -175,28 +171,20 @@ impl Almanac {
     }
 
     fn get_minimum_location(&self) -> i64 {
-        let mut lowest_location = INFINITY as i64;
-        for (start, range_len) in &self.seed_ranges {
-            let location = self.get_location_ranges(Range {
-                start: *start,
-                range_len: *range_len,
-            });
-            let min_location = location
-                .iter()
-                .min_by_key(|range| range.start)
-                .unwrap()
-                .start;
-            if min_location < lowest_location {
-                lowest_location = min_location;
+        let mut lowest_location = i64::MAX;
+        self.seed_ranges.iter().for_each(|&(start, range_len)| {
+            let location = self.get_location_ranges(Range { start, range_len });
+            if let Some(min_range) = location.iter().min_by_key(|range| range.start) {
+                lowest_location = lowest_location.min(min_range.start);
             }
-        }
-        return lowest_location;
+        });
+        lowest_location
     }
 }
 
 fn main() {
     let input: String = fs::read_to_string("input.txt").expect("Unable to read input.txt");
-    let almanac = Almanac::from_str(input);
+    let almanac = Almanac::from_str(&input);
 
     println!("{:?}", almanac.get_minimum_location());
 }
