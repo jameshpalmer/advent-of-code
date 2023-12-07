@@ -31,7 +31,6 @@ impl Hand {
             })
             .collect::<Vec<i32>>();
         let bid = str_vec[1].parse::<i32>().unwrap();
-        println!("{:?}", cards);
 
         Hand::new(cards, bid)
     }
