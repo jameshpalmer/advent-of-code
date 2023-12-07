@@ -56,8 +56,8 @@ impl Map {
 
     fn get_range(&self, source: Range) -> Vec<(Range, Range)> {
         // We need to split the source range into any partitions that are
-        // contiguous to map elements. For example, if we have a map element
-        // that maps 0..10 to 20..30, and we have a source range of 5..25,
+        // contiguous to map elements. For example, if we have maps
+        // from 0..10 and from 20..30, and we have a source range of 5..25,
         // we need to split the source range into 5..10, 10..20, and 20..25.
         let mut partitions: Vec<Range> = Vec::new();
 
